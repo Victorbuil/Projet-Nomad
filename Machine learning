@@ -1,0 +1,275 @@
+Plan d'Action
+1.Analyse des Valeurs Manquantes : Comprendre l'ampleur des valeurs manquantes et leur impact.
+2.Traitement des Valeurs Manquantes : Appliquer des stratégies appropriées pour imputer ou supprimer les valeurs manquantes.
+3.Préparation des Données : Préparer les données pour la régression linéaire.
+4.Régression Linéaire : Ajuster le modèle et évaluer ses performances.
+
+1.Afficher la proportion de valeurs manquantes pour chaque colonne
+
+missing_proportions = df.isna().mean() * 100
+print(missing_proportions[missing_proportions > 0])
+
+2. Traitement des Valeurs Manquantes
+
+# Créer des variables binaires pour les opérations promotionnelles
+df['has_operation'] = df['operation_name'].notna().astype(int)
+df['has_display_date_gs'] = df['display_date_gs'].notna().astype(int)
+
+# Remplacer les valeurs manquantes dans les colonnes de dates par une valeur neutre (par exemple, 0 ou une date de référence)
+df['startdate_op'].fillna(pd.Timestamp('2000-01-01'), inplace=True)
+df['enddate_op'].fillna(pd.Timestamp('2000-01-01'), inplace=True)
+
+# Convertir les dates en nombres (jours depuis une date de référence)
+date_reference = pd.Timestamp('2000-01-01')
+
+def date_to_numeric(date_series):
+    return (date_series - date_reference).dt.days
+
+df['startdate_op_numeric'] = date_to_numeric(df['startdate_op'])
+df['enddate_op_numeric'] = date_to_numeric(df['enddate_op'])
+
+3. Imputation des Colonnes de Publicité Google Shopping
+
+# Vérifier les types de données des colonnes concernées
+print(df[['display_date_gs', 'impression_gs', 'acquisition_cost_gs']].dtypes)
+
+# Définir une date de référence
+date_reference = pd.Timestamp('2000-01-01')
+
+# Convertir display_date_gs en jours depuis la date de référence
+df['display_date_gs_numeric'] = (df['display_date_gs'] - date_reference).dt.days
+
+# Vérifier les colonnes après conversion
+print(df[['display_date_gs_numeric', 'impression_gs', 'acquisition_cost_gs']].head())
+
+# Convertir les dates en jours depuis une date de référence si ce n'est pas déjà fait
+if pd.api.types.is_datetime64_any_dtype(df['display_date_gs']):
+    date_reference = pd.Timestamp('2000-01-01')
+    df['display_date_gs_numeric'] = (df['display_date_gs'] - date_reference).dt.days
+
+# Convertir en numérique explicitement si nécessaire
+df['impression_gs'] = pd.to_numeric(df['impression_gs'], errors='coerce')
+df['acquisition_cost_gs'] = pd.to_numeric(df['acquisition_cost_gs'], errors='coerce')
+
+# Vérifier les types de données après conversion
+print(df[['display_date_gs_numeric', 'impression_gs', 'acquisition_cost_gs']].dtypes)
+
+from sklearn.impute import SimpleImputer
+
+# Imputer les colonnes numériques avec des valeurs manquantes modérées
+num_imputer = SimpleImputer(strategy='mean')
+
+# Colonnes à imputer (assure-toi que 'display_date_gs_numeric' est utilisé ici)
+numeric_columns = ['display_date_gs_numeric', 'impression_gs', 'acquisition_cost_gs']
+df[numeric_columns] = num_imputer.fit_transform(df[numeric_columns])
+
+# Vérifier que les valeurs manquantes ont été imputées
+print(df[numeric_columns].isna().sum())
+
+# Convertir les dates en nombres (jours depuis une date de référence)
+date_reference = pd.Timestamp('2000-01-01')
+
+def date_to_numeric(date_series):
+    return (date_series - date_reference).dt.days
+
+df['order_date_numeric'] = date_to_numeric(df['order_date'])
+df['startdate_op_numeric'] = date_to_numeric(df['startdate_op'])
+df['enddate_op_numeric'] = date_to_numeric(df['enddate_op'])
+df['tracking_day_front_numeric'] = date_to_numeric(df['tracking_day_front'])
+
+4. Préparation des Données
+
+from sklearn.model_selection import train_test_split
+
+# Définir les variables indépendantes et la variable cible
+features = ['avg_price', 'indice_avg_price', 'display_date_gs_numeric',
+'impression_gs', 'acquisition_cost_gs', 'order_date_numeric',
+'startdate_op_numeric', 'enddate_op_numeric', 'has_operation',
+'has_display_date_gs']
+
+X = df[features]
+y = df['total_customers']
+
+# Diviser les données en ensembles d'entraînement et de test
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+
+# Vérifier les valeurs manquantes dans X_train et X_test
+print(X_train.isna().sum())
+print(X_test.isna().sum())
+
+from sklearn.impute import SimpleImputer
+
+# Créer un imputer pour les colonnes numériques
+num_imputer = SimpleImputer(strategy='mean')
+
+# Imputer les valeurs manquantes dans X_train et X_test
+# Note : Assure-toi que X_train et X_test contiennent les colonnes avec des valeurs manquantes
+X_train_imputed = num_imputer.fit_transform(X_train)
+X_test_imputed = num_imputer.transform(X_test)
+
+# Vérifier les valeurs manquantes après imputation
+print(pd.DataFrame(X_train_imputed, columns=X_train.columns).isna().sum())
+print(pd.DataFrame(X_test_imputed, columns=X_test.columns).isna().sum())
+
+5. Modèle de données 
+
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error, r2_score
+
+# Créer et ajuster le modèle de régression linéaire
+model = LinearRegression()
+model.fit(X_train_imputed, y_train)
+
+# Prédiction et évaluation
+y_pred = model.predict(X_test_imputed)
+print(f'RMSE: {mean_squared_error(y_test, y_pred, squared=False)}')
+print(f'R^2: {r2_score(y_test, y_pred)}')
+
+# Coefficients du modèle
+coefficients = pd.DataFrame({'Feature': X_train.columns, 'Coefficient': model.coef_})
+print(coefficients)
+
+6. Amélioration du modèle
+
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import cross_val_score
+
+# Créer et ajuster un modèle de forêt aléatoire
+rf_model = RandomForestRegressor(n_estimators=100, random_state=42)
+rf_model.fit(X_train_imputed, y_train)
+
+# Prédiction et évaluation
+y_pred_rf = rf_model.predict(X_test_imputed)
+print(f'RMSE (Random Forest): {mean_squared_error(y_test, y_pred_rf, squared=False)}')
+print(f'R^2 (Random Forest): {r2_score(y_test, y_pred_rf)}')
+
+# Importance des caractéristiques
+importances = rf_model.feature_importances_
+feature_importances = pd.DataFrame({'Feature': X_train.columns, 'Importance': importances})
+print(feature_importances.sort_values(by='Importance', ascending=False))
+
+# Vérifier le nombre de caractéristiques dans X_train et les importances
+print(len(X_train.columns))
+print(len(importances))
+
+# Assurer que les longueurs correspondent
+if len(X_train.columns) == len(importances):
+    feature_importances = pd.DataFrame({
+        'Feature': X_train.columns,
+        'Importance': importances
+    })
+    print(feature_importances.sort_values(by='Importance', ascending=False))
+else:
+    print("Les longueurs des caractéristiques et des importances ne correspondent pas.")
+
+# Imputer les valeurs manquantes
+num_imputer = SimpleImputer(strategy='mean')
+X_train_imputed_np = num_imputer.fit_transform(X_train)
+X_test_imputed_np = num_imputer.transform(X_test)
+
+# Convertir les tableaux NumPy en DataFrames pandas avec les noms des colonnes
+X_train_imputed = pd.DataFrame(X_train_imputed_np, columns=X_train.columns)
+X_test_imputed = pd.DataFrame(X_test_imputed_np, columns=X_train.columns)
+
+# Vérifier les colonnes
+print("Colonnes de X_train :", X_train_imputed.columns)
+print("Colonnes de X_test :", X_test_imputed.columns)
+
+# Vérifier les colonnes des ensembles d'entraînement et de test
+print("Colonnes de X_train :", X_train.columns)
+print("Colonnes de X_test :", X_test.columns)
+
+# Inclure toutes les caractéristiques prévues
+X = df[['avg_price', 'indice_avg_price', 'display_date_gs_numeric', 'impression_gs',
+'acquisition_cost_gs', 'order_date_numeric', 'startdate_op_numeric',
+'enddate_op_numeric', 'has_operation', 'has_display_date_gs']]
+
+# Variable cible
+y = df['nb_new_customers']  # Remplacez par la variable cible réelle
+
+# Séparation des données
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Imputation des valeurs manquantes
+num_imputer = SimpleImputer(strategy='mean')
+X_train_imputed_np = num_imputer.fit_transform(X_train)
+X_test_imputed_np = num_imputer.transform(X_test)
+
+# Convertir en DataFrame pandas avec les noms de colonnes
+X_train_imputed = pd.DataFrame(X_train_imputed_np, columns=X.columns)
+X_test_imputed = pd.DataFrame(X_test_imputed_np, columns=X.columns)
+
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_error, r2_score
+
+# Créer et ajuster un modèle de random forest
+rf_model = RandomForestRegressor(n_estimators=100, random_state=42)
+rf_model.fit(X_train_imputed, y_train)
+
+# Prédiction et évaluation
+y_pred_rf = rf_model.predict(X_test_imputed)
+print(f'RMSE (Random Forest): {mean_squared_error(y_test, y_pred_rf, squared=False)}')
+print(f'R^2 (Random Forest): {r2_score(y_test, y_pred_rf)}')
+
+# Importance des caractéristiques
+importances = rf_model.feature_importances_
+feature_importances = pd.DataFrame({
+    'Feature': X_train_imputed.columns,
+    'Importance': importances
+})
+print(feature_importances.sort_values(by='Importance', ascending=False))
+
+from sklearn.model_selection import GridSearchCV
+
+# Définir les paramètres à tester
+param_grid = {
+    'n_estimators': [100, 200],
+    'max_depth': [None, 10, 20, 30],
+    'min_samples_split': [2, 5, 10],
+    'min_samples_leaf': [1, 2, 4]
+}
+
+# Créer un modèle de forêt aléatoire
+rf = RandomForestRegressor(random_state=42)
+
+# Définir la recherche par grille
+grid_search = GridSearchCV(estimator=rf, param_grid=param_grid, cv=5, n_jobs=-1, verbose=2)
+
+# Ajuster la recherche par grille
+grid_search.fit(X_train_imputed, y_train)
+
+# Meilleurs paramètres
+print("Meilleurs paramètres : ", grid_search.best_params_)
+
+# Meilleur modèle
+best_rf_model = grid_search.best_estimator_
+
+# Évaluation
+y_pred_best_rf = best_rf_model.predict(X_test_imputed)
+print(f'RMSE (Best Random Forest): {mean_squared_error(y_test, y_pred_best_rf, squared=False)}')
+print(f'R^2 (Best Random Forest): {r2_score(y_test, y_pred_best_rf)}')
+
+# Afficher les meilleurs paramètres trouvés
+print("Meilleurs paramètres : ", grid_search.best_params_)
+
+# Meilleur modèle trouvé
+best_rf_model = grid_search.best_estimator_
+
+# Évaluer les performances du meilleur modèle sur les données de test
+y_pred_best_rf = best_rf_model.predict(X_test_imputed)
+
+from sklearn.metrics import mean_squared_error, r2_score
+
+# Calculer RMSE et R^2
+rmse_best_rf = mean_squared_error(y_test, y_pred_best_rf, squared=False)
+r2_best_rf = r2_score(y_test, y_pred_best_rf)
+
+print(f'RMSE (Best Random Forest): {rmse_best_rf}')
+print(f'R^2 (Best Random Forest): {r2_best_rf}')
+
+# Afficher les importances des caractéristiques
+importances = best_rf_model.feature_importances_
+feature_importances = pd.DataFrame({'Feature': X_train.columns, 'Importance': importances})
+print(feature_importances.sort_values(by='Importance', ascending=False))
+
+
