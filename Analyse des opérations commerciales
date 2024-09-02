@@ -28,3 +28,65 @@
   plt.figure(figsize=(12, 10))
   sns.heatmap(df_corr.corr(), annot=True, cmap='coolwarm', fmt='.2f')
   plt.show()
+
+5. Distribution des ventes
+  
+  sns.histplot(data=df, x='total_customers', kde=True)
+  plt.title('Distribution des ventes (total customers)')
+  plt.show()
+
+6. Distribution des nouveaux clients
+
+  sns.histplot(data=df, x='nb_new_customers', kde=True)
+  plt.title('Distribution des nouveaux clients')
+  plt.show()
+
+7. Comparaison des ventes entre produits en opération et hors opération
+
+  sns.boxplot(data=df, x='on_operation', y='total_customers')
+  plt.title('Ventes - Produits en opération vs hors opération')
+  plt.show()
+
+8. Comparaison du recrutement de nouveaux clients entre produits en opération et hors opération
+
+  sns.boxplot(data=df, x='on_operation', y='nb_new_customers')
+  plt.title('Nouveaux clients - Produits en opération vs hors opération')
+  plt.show()
+
+9. Liste des opérations distinctes
+
+  operations = df['operation_name'].unique()
+
+10. Choisir les variables pour la matrice de corrélation
+
+  variables = ['total_customers', 'nb_new_customers', 'avg_price', 'indice_avg_price',
+             'impression_gs', 'acquisition_cost_gs', 'click_on_front']
+
+11. Créer une matrice de corrélation pour chaque opération
+  
+for operation in operations:
+    operation_data = df[df['operation_name'] == operation]
+    corr_matrix = operation_data[variables].corr()
+
+12. Afficher la heatmap pour cette opération
+    
+plt.figure(figsize=(8, 6))
+    sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', vmin=-1, vmax=1)
+    plt.title(f'Matrice de corrélation pour {operation}')
+    plt.show()
+
+13. Groupement par opération et calcul des moyennes
+
+    operation_impact = df.groupby('operation_name').agg({
+        'total_customers': 'mean',
+        'nb_new_customers': 'mean',
+        'impression_gs': 'mean',
+        'acquisition_cost_gs': 'mean',
+        'click_on_front': 'mean'
+    }).reset_index()
+
+14. Visualisation
+
+    operation_impact.plot(kind='bar', x='operation_name', y=['total_customers', 'nb_new_customers'])
+    plt.title("Impact des opérations commerciales sur les ventes et le recrutement")
+    plt.show()
