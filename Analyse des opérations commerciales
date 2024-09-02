@@ -1,0 +1,30 @@
+1. Importation des tables de SQL.
+
+  import seaborn as sns
+  import matplotlib.pyplot as plt
+  import plotly.express as px
+  from google.colab import auth
+  import pandas as pd
+  auth.authenticate_user()
+  query = "SELECT * FROM `cdiscountwagon.CB_datasets.OP_KPIs`"
+  project = "cdiscountwagon"
+  df_kpi = pd.read_gbq(query=query, project_id=project)
+
+2.Visualisation de la table globale.
+  df_kpi.head()
+  df_kpi.info()
+
+3.Cleaning
+
+  df_kpi.fillna(61, inplace=True)
+  df_kpi.info()
+  df_kpi['operation_name'] = df_kpi['operation_name'].astype("string")
+  df_kpi.info()
+  df_corr=df_kpi.drop(columns=['operation_name'])
+
+4. Affichage matrice de corrélation.
+
+  sns.heatmap(df_corr.corr(), annot=True)
+  plt.figure(figsize=(12, 10))
+  sns.heatmap(df_corr.corr(), annot=True, cmap='coolwarm', fmt='.2f')
+  plt.show()
