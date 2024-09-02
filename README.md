@@ -53,8 +53,4 @@ Nous utiliserons ces données pour identifier et analyser les critères qui infl
 
 [Users Stories](https://www.notion.so/Users-Stories-0affdb9d984743689965f85229487027?pvs=21)
 
-[Google colab / Power BI](https://www.notion.so/Google-colab-Power-BI-87c33513028a4ead9d16949d24967b0b?pvs=21)
-
-[Machine Learning](https://www.notion.so/Machine-Learning-6a826cc55ab741df8fa008ccee377e5c?pvs=21)
-
 </aside>
