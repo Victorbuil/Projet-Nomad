@@ -41,7 +41,7 @@ Nous utiliserons ces données pour identifier et analyser les critères qui infl
 ---
 
 <aside>
-🚧 Retrouvez toutes les **pages du proje**t, les **ressources** et le **détail de nos travaux** !
+🚧 Retrouvez toutes les pages du projet, les ressources et l'état d'avancement de notre projet ! 
 
 ## Ressources
 
